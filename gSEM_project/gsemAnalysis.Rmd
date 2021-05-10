@@ -1,0 +1,157 @@
+---
+title: "gsemAnalysis"
+authors: "Jack Lovell, Ziwei Cheng, Frida Mudsam"
+date: "4/21/2021"
+output:
+  html_document:
+    df_print: paged
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1, install packages
+```{r}
+library(devtools)
+install_github("GenomicSEM/GenomicSEM")
+require(GenomicSEM)
+install.packages("reshape2")
+```
+
+## 1.1 load libraries
+```{r}
+library(usethis)
+library(devtools)
+library(tidyverse)
+library(GenomicSEM)
+library(reshape2)
+library(ggplot2)
+```
+
+## 2, explore data using major depressive disorder file
+#check data size and variables types
+#check linear relationship between variables
+#check summary and plots
+
+##variable explanation:
+#CHR: chromosome of the genetic variant
+#SNP: variant ID
+#BP: base-pair position of the genetic variant
+#A1: effect allele
+#A2: other allele
+#FRQ_A_135458: Allele 1 frequency among cases (135458 is case sample size)
+#FRQ_U_344901:Allele 1 frequency among controls (344901 is control sample size)
+#INFO: how much learned from imputation
+#OR: odds-ratio for the effect allele
+#SE: standard error
+```{r}
+m<-read.delim('mdd')
+print(as.tibble(m)) #data for major depressive disorder
+lmod<-lm(INFO~OR, data=m)
+summary(m)
+plot(m)
+plot(lm(residuals(lmod)~m$SE))
+```
+
+## 3, Munge/clean files
+#munged files: substance use disorder, post traumatic stress disorder, major depressive disorder
+```{r}
+setwd('~/Desktop/gsemProj/')
+munge(files=c('./opi.DEPvEXP_trans.ancestry.noAF.tbl','./pts_eur_freeze2_overall.results'),
+      hm3='./w_hm3.noMHC.snplist', trait.names = c("sud","ptsd"))
+```
+
+```{r}
+munge(files=c('./mdd'),
+      hm3='./w_hm3.noMHC.snplist', N=480359, trait.names = c("mdd"))
+```
+
+
+## 4,Cov matrix
+#calculate the covariance matrix using the munged files
+#sample prev is sample prevalence and is calculated as the number of cases over the total number of participants
+#population prevalence is obtained by national health data (searched online)
+#ldsc function runs multivariable LD-Score regression and gives genetic covariance matrix and corresponding sampling covariance matrix
+
+```{r}
+traits <- c("sud.sumstats.gz", "ptsd.sumstats.gz","mdd.sumstats.gz")
+sample.prev <- c(.51,.15,.28)
+population.prev <- c(.23,.08,.07)
+ld <- "eur_w_ld_chr/"
+wld <- "eur_w_ld_chr/"
+trait.names<-c("SUD","PTSD","mdd")
+LDSCoutput <- ldsc(traits, sample.prev, population.prev, ld, wld, trait.names)
+```
+
+# 4.1 check covariance matrix output
+##explanation:
+#S:the covariance matrix (on the liability scale for #case/control designs).
+#V:the sampling covariance matrix in the format expected by lavaan.
+#I:the matrix of LDSC intercepts and cross-trait (i.e., bivariate) intercepts.
+#N:contains the sample sizes (N) for the heritabilities and sqrt(N1N2) for the co-heritabilities. These are the sample sizes provided in the munging process.
+#m:the number of SNPs used to construct the LD score.
+
+```{r}
+LDSCoutput
+```
+
+## 4.2 visualize covariance matrix
+
+```{r}
+melted_cormat_1 <- melt(LDSCoutput$S)
+head(melted_cormat_1)
+ggplot(data = melted_cormat_1, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()
+```
+
+## 4.3 check the standard errors of the ld-score regression
+
+```{r}
+k<-nrow(LDSCoutput$S)
+SE<-matrix(0, k, k)
+SE[lower.tri(SE,diag=TRUE)] <-sqrt(diag(LDSCoutput$V))
+SE
+```
+
+## 5, fit common factor model
+#common factor model foumula: commonfactor.model<-'F1=~ NA*SUD + PTSD + mdd F1~~1*F1'
+#"F1 =~ trait" lists the indicator loadings on the common factors
+#"V ~~ V" lists the residual variances of the indicators after removing variance explained by the common factor
+
+```{r}
+CommonFactor_DWLS<- commonfactor(covstruc = LDSCoutput, estimation="DWLS")
+CommonFactor_DWLS$results
+```
+
+## 6, fit specific model
+
+# 6.1 specify a model in which major depressive disorder is regressed on substance use disorder and post traumatic stress disorder, and the correlation is modeled between substance use disorder and post traumatic stress disorder
+
+# from the results, SUD and PTSD are not uniquely assocociated with MDD because the p-values >0.05. SUD and PTSD are significantly correlated, p<0.05. 
+```{r}
+GWISmodel <- 'mdd ~ SUD + PTSD
+SUD~~PTSD'
+GWISoutput<-usermodel(covstruc = LDSCoutput, estimation = "DWLS", model = GWISmodel, CFIcalc = TRUE, std.lv = FALSE, imp_cov = FALSE)
+GWISoutput$results
+```
+
+# 6.2 specify a model in which substance use disorder is regressed on major depressive disorder and post traumatic stress disorder, and the correlation is modeled between major depressive disorder and post traumatic stress disorder
+
+# from the results, MDD and PTSD are not uniquely assocociated with SUD because the p-values >0.05. MDD and PTSD are significantly correlated, p<0.05.
+
+```{r}
+GWISmodel_2 <- 'SUD ~ mdd + PTSD
+mdd~~PTSD'
+GWISoutput_2<-usermodel(covstruc = LDSCoutput, estimation = "DWLS", model = GWISmodel_2, CFIcalc = TRUE, std.lv = FALSE, imp_cov = FALSE)
+GWISoutput_2$results
+```
+# 6.3 specify a model in which post traumatic stress disorder is regressed on major depressive disorder and substance use disorder, and the correlation is modeled between major depressive disorder and substance use disorder
+
+# from the results, MDD and SUD are not uniquely assocociated with PTSD because the p-values >0.05. MDD and SUD are not significantly correlated, p>0.05.
+
+```{r}
+GWISmodel_3 <- 'PTSD ~ mdd + SUD
+mdd~~SUD'
+GWISoutput_3<-usermodel(covstruc = LDSCoutput, estimation = "DWLS", model = GWISmodel_3, CFIcalc = TRUE, std.lv = FALSE, imp_cov = FALSE)
+GWISoutput_3$results
+```

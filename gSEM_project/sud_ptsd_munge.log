@@ -1,0 +1,50 @@
+The munging of 2 summary statistics started at 2021-04-17 20:12:29
+Reading summary statistics for ./opi.DEPvEXP_trans.ancestry.noAF.tbl ./pts_eur_freeze2_overall.results . Please note that this step usually takes a few minutes due to the size of summary statistic files.
+Reading in reference file
+All files loaded into R!
+     
+     
+Munging file: ./opi.DEPvEXP_trans.ancestry.noAF.tbl
+Interpreting the RSID column as the SNP column.
+Interpreting the ALLELE1 column as the A1 column.
+Interpreting the ALLELE2 column as the A2 column.
+Interpreting the ZSCORE column as the effect column.
+Interpreting the P.VALUE column as the P column.
+Interpreting the  WEIGHT  column as the N (sample size) column.
+Interpreting the  TOTAL_N  column as the N (sample size) column.
+Merging file: ./opi.DEPvEXP_trans.ancestry.noAF.tbl with the reference file: ./w_hm3.noMHC.snplist
+4000397 rows present in the full ./opi.DEPvEXP_trans.ancestry.noAF.tbl summary statistics file.
+3240176 rows were removed from the ./opi.DEPvEXP_trans.ancestry.noAF.tbl summary statistics file as the rs-ids for these rows were not present in the reference file.
+8 row(s) were removed from the ./opi.DEPvEXP_trans.ancestry.noAF.tbl summary statistics file due to the effect allele (A1) column not matching A1 or A2 in the reference file.
+No INFO column, cannot filter on INFO, which may influence results
+No MAF column, cannot filter on MAF, which may influence results
+760213 SNPs are left in the summary statistics file ./opi.DEPvEXP_trans.ancestry.noAF.tbl after QC.
+I am done munging file: ./opi.DEPvEXP_trans.ancestry.noAF.tbl
+The file is saved as sud.sumstats.gz in the current working directory.
+     
+     
+Munging file: ./pts_eur_freeze2_overall.results
+Interpreting the SNP column as the SNP column.
+Interpreting the A1 column as the A1 column.
+Interpreting the A2 column as the A2 column.
+Interpreting the OR column as the effect column.
+Interpreting the INFO column as the INFO column.
+Interpreting the P column as the P column.
+Interpreting the  NCA  column as the N_CAS (sample size for cases) column.
+Interpreting the  NCO  column as the N_CON (sample size for controls) column.
+As the file includes both N_CAS and N_CON columns, the summation of these two columns will be used as the total sample size
+Merging file: ./pts_eur_freeze2_overall.results with the reference file: ./w_hm3.noMHC.snplist
+9766174 rows present in the full ./pts_eur_freeze2_overall.results summary statistics file.
+8581264 rows were removed from the ./pts_eur_freeze2_overall.results summary statistics file as the rs-ids for these rows were not present in the reference file.
+The effect column was determined to be coded as an odds ratio (OR) for the ./pts_eur_freeze2_overall.results summary statistics file. Please ensure this is correct.
+191 row(s) were removed from the ./pts_eur_freeze2_overall.results summary statistics file due to the effect allele (A1) column not matching A1 or A2 in the reference file.
+114 row(s) were removed from the ./pts_eur_freeze2_overall.results summary statistics file due to the other allele (A2) column not matching A1 or A2 in the reference file.
+14286 rows were removed from the ./pts_eur_freeze2_overall.results summary statistics file due to INFO values below the designated threshold of 0.9
+No MAF column, cannot filter on MAF, which may influence results
+1170319 SNPs are left in the summary statistics file ./pts_eur_freeze2_overall.results after QC.
+I am done munging file: ./pts_eur_freeze2_overall.results
+The file is saved as ptsd.sumstats.gz in the current working directory.
+     
+Munging was completed at 2021-04-17 20:22:10
+The munging of all files took 9 minutes and 41.4911749362946 seconds
+Please check the log file sud_ptsd_munge.log to ensure that all columns were interpreted correctly and no warnings were issued for any of the summary statistics files
